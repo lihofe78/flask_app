@@ -16,6 +16,7 @@ app.config.from_object(__name__)
 app.config.update(dict(DATABASE=os.path.join(app.root_path, 'fldb.db')))
 login_manager = LoginManager(app)
 
+
 def connect_db():
     conn = sqlite3.connect(app.config["DATABASE"])
     conn.row_factory = sqlite3.Row
@@ -23,7 +24,7 @@ def connect_db():
 
 
 def create_db():
-    photos_dir = 'static/images'
+    photos_dir = os.path.join(os.getcwd(), 'static', 'images')
     db = connect_db()
     with app.open_resource("sq_db.sql", mode="r") as f:
         db.cursor().executescript(f.read())
@@ -35,9 +36,12 @@ def create_db():
             cursor = db.cursor()
             cursor.execute('SELECT * FROM Images WHERE name = ?', (name,))
             if cursor.fetchone() is None:
-                cursor.execute('INSERT INTO Images (name, image_file) VALUES (?, ?)', (name, image_file))
+                cursor.execute(
+                    'INSERT INTO Images (name, image_file) VALUES (?, ?)', (name, image_file))
     db.commit()
     print('aaaaa')
+
+
 create_db()
 
 
@@ -47,17 +51,23 @@ def get_db():
         g.link_db = connect_db()
     return g.link_db
 
+
 dbase = None
+
+
 @app.before_request
 def before_request():
     """Установление соединения с БД перед выполнением запроса"""
     global dbase
     db = get_db()
     dbase = FDataBase(db)
+
+
 @login_manager.user_loader
 def load_user(user_id):
     print('load_user')
     return UserLogin().fromDB(user_id, dbase)
+
 
 @app.route('/')
 # @login_required
@@ -76,7 +86,8 @@ def category(image_id):
     if request.method == 'POST':
         category_id = request.form['category']
 
-        c.execute("INSERT INTO Image_Category (image_id, category_id) VALUES (?, ?)", (image_id, category_id))
+        c.execute("INSERT INTO Image_Category (image_id, category_id) VALUES (?, ?)",
+                  (image_id, category_id))
         conn.commit()
 
         conn.close()
@@ -87,6 +98,7 @@ def category(image_id):
     conn.close()
     return render_template('category.html', image=image, categories=categories)
 
+
 @app.route("/register", methods=["POST", "GET"])
 def register():
     if request.method == "POST":
@@ -94,7 +106,8 @@ def register():
         if len(request.form['name']) > 2 and len(request.form['email']) > 2 \
                 and len(request.form['psw']) > 2 and request.form['psw'] == request.form['psw2']:
             hash = generate_password_hash(request.form['psw'])
-            res = dbase.addUser(request.form['name'], request.form['email'], hash)
+            res = dbase.addUser(
+                request.form['name'], request.form['email'], hash)
             if res:
                 flash("Вы успешно зарегистрированы", "success")
                 return redirect(url_for('login'))
@@ -104,6 +117,7 @@ def register():
             flash("Неверно заполнены поля", "error")
 
     return render_template("register.html", menu=dbase.getMenu(), title="Регистрация")
+
 
 @app.route("/login", methods=["POST", "GET"])
 def login():
@@ -118,6 +132,7 @@ def login():
 
     return render_template("login.html", menu=dbase.getMenu(), title="Авторизация")
 
+
 @app.route('/aaa')
 @login_required
 def index():
@@ -128,6 +143,7 @@ def index():
     images = c.fetchall()
     conn.close()
     return render_template('index.html', images=images)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
