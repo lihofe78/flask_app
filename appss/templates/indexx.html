@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Выберите категорию для фото</title>
+</head>
+<body>
+    <h1>Выберите категорию для фото</h1>
+    <form action="/add_category" method="post">
+        <select name="category_id">
+            {% for category in categories %}
+            <option value="{{ category[0] }}">{{ category[0] }}</option>
+            {% endfor %}
+        </select>
+        <br><br>
+        <div id="image-container">
+            {% for image in images %}
+            <div class="image">
+                <img src="{{ image[2] }}" alt="{{ image[1] }}">
+                <input type="checkbox" name="image_id" value="{{ image[0] }}">
+            </div>
+            {% endfor %}
+        </div>
+        <br><br>
+        <input type="submit" value="Добавить категорию">
+    </form>
+</body>
+</html>

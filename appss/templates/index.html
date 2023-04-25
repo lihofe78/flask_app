@@ -1,0 +1,19 @@
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <title>Image Annotation</title>
+</head>
+<body>
+    <h1>Image Annotation</h1>
+    <ul>
+        {% for image in images %}
+        <li><a href="{{ url_for('category', image_id=image[0]) }}">{{ image[1] }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
+
+
+

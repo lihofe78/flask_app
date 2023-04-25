@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Gallery</title>
+</head>
+<body>
+    <h1>Image Gallery</h1>
+    <form action="{{ url_for('save_categories') }}" method="POST">
+        {% for image in images %}
+            <div>
+                <img src="{{ image.image_file }}" alt="{{ image.name }}" width="200">
+                <label for="{{ image.name }}">Category:</label>
+                <select name="{{ image.name }}" id="{{ image.name }}">
+                    <option value="">-- Select a category --</option>
+                    {% for category in categories %}
+                        <option value="{{ category }}">{{ category }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        {% endfor %}
+        <button type="submit">Save Categories</button>
+    </form>
+</body>
+</html>

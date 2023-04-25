@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Choose Categories</title>
+</head>
+<body>
+    <h1>Choose Categories for Photos</h1>
+    <form method="POST" action="{{ url_for('save_categories') }}">
+        {% for photo in photos %}
+            <h2>{{ photo.name }}</h2>
+            <img src="{{ photo.image_file }}" alt="{{ photo.name }}">
+            <label for="{{ photo.name }}">Choose Category:</label>
+            <select name="{{ photo.name }}" id="{{ photo.name }}">
+                {% for category in categories %}
+                    <option value="{{ category }}">{{ category }}</option>
+                {% endfor %}
+            </select>
+        {% endfor %}
+        <br>
+        <input type="submit" value="Save Categories">
+    </form>
+</body>
+</html>

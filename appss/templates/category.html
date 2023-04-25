@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Annotation</title>
+</head>
+<body>
+    <h1>Image Annotation</h1>
+    <img src="{{ image[2]}}" alt="{{ image[1] }}">
+    <form method="POST">
+        <select name="category">
+            {% for category in categories %}
+            <option value="{{ category[0] }}">{{ category[1] }}</option>
+            {% endfor %}
+        </select>
+        <input type="submit" value="Submit">
+    </form>
+</body>
+</html>
