@@ -8,5 +8,5 @@ COPY . .
 
 RUN pip install -r requirements.txt
 
-ENTRYPOINT ["python", "appss/fllll.py"]
+ENTRYPOINT ["gunicorn", "--chdir", "./appss", "--bind", "0.0.0.0:5000", "wsgi:app"]
 

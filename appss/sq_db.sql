@@ -12,12 +12,12 @@ url text NOT NULL
 
 CREATE TABLE IF NOT EXISTS Categories (
     id INTEGER PRIMARY KEY,
-    name TEXT
+    name TEXT UNIQUE
 );
 
 
-INSERT INTO Categories (name) VALUES ("глиномесная");
-INSERT INTO Categories (name) VALUES ("пидарасная");
+INSERT OR IGNORE INTO Categories (name) VALUES ("глиномесная");
+INSERT OR IGNORE INTO Categories (name) VALUES ("пидарасная");
 
 
 CREATE TABLE IF NOT EXISTS users (

@@ -1,12 +1,13 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, g
+from flask import Flask, render_template, request, redirect, url_for, flash
 import sqlite3
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from FDataBase import FDataBase
 from flask_login import LoginManager, login_user, login_required
 from UserLogin import UserLogin
-from loguru import logger
+import logging
 import typer
+from functools import cache
 import config
 
 
@@ -15,7 +16,7 @@ DEBUG = "True"
 SECRET_KEY = "lkjhgfdsapoiuytrewqer"
 
 
-conn = sqlite3.connect(config.DB_PATH, check_same_thread=False)
+logger = logging.getLogger('gunicorn.error')
 
 
 app = Flask(__name__)
@@ -25,61 +26,37 @@ app.config.from_object(__name__)
 login_manager = LoginManager(app)
 
 
-def connect_db():
-    # conn = sqlite3.connect(config.DB_PATH)
+@cache
+def conn():
+    conn = sqlite3.connect(config.DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
 
 def create_db():
+    db = conn()
     logger.info("start creating db")
     logger.info(f"photos dir is {config.PHOTOS_DIR}")
-    db = connect_db()
     with app.open_resource("sq_db.sql", mode="r") as f:
         db.cursor().executescript(f.read())
 
     for filename in os.listdir(config.PHOTOS_DIR):
-        logger.info(f"process image {filename}")
         if filename.endswith('.jpg') or filename.endswith('.png') or filename.endswith('.jpeg'):
             name = os.path.splitext(filename)[0]
             image_file = "/static/images/{}".format(filename.replace('\\', '/'))
-            logger.info(f"image_file is {filename}")
             cursor = db.cursor()
             cursor.execute('SELECT * FROM Images WHERE name = ?', (name,))
             if cursor.fetchone() is None:
                 cursor.execute(
                     'INSERT INTO Images (name, image_file) VALUES (?, ?)', (name, image_file))
     db.commit()
-    print('aaaaa')
-
-
-# create_db()
-
-    
-
-
-def get_db():
-    # coonect if not exists
-    if not hasattr(g, 'link_db'):
-        g.link_db = connect_db()
-    return g.link_db
-
-
-dbase = None
-
-
-@app.before_request
-def before_request():
-    """Установление соединения с БД перед выполнением запроса"""
-    global dbase
-    db = get_db()
-    dbase = FDataBase(db)
+    logger.info("db successfully filled with image paths")
 
 
 @login_manager.user_loader
 def load_user(user_id):
     print('load_user')
-    return UserLogin().fromDB(user_id, dbase)
+    return UserLogin().fromDB(user_id, FDataBase(conn()))
 
 
 @app.route('/')
@@ -90,7 +67,7 @@ def start():
 
 @app.route('/category/<int:image_id>', methods=['GET', 'POST'])
 def category(image_id):
-    c = conn.cursor()
+    c = conn().cursor()
     c.execute("SELECT * FROM Images WHERE id=?", (image_id,))
     image = c.fetchone()
     c.execute("SELECT * FROM Categories")
@@ -100,7 +77,7 @@ def category(image_id):
 
         c.execute("INSERT INTO Image_Category (image_id, category_id) VALUES (?, ?)",
                   (image_id, category_id))
-        conn.commit()
+        conn().commit()
 
         next_image_id = image_id + 1
         return redirect(url_for('category', image_id=next_image_id))
@@ -115,7 +92,7 @@ def register():
         if len(request.form['name']) > 2 and len(request.form['email']) > 2 \
                 and len(request.form['psw']) > 2 and request.form['psw'] == request.form['psw2']:
             hash = generate_password_hash(request.form['psw'])
-            res = dbase.addUser(
+            res = FDataBase(conn()).addUser(
                 request.form['name'], request.form['email'], hash)
             if res:
                 flash("Вы успешно зарегистрированы", "success")
@@ -125,13 +102,13 @@ def register():
         else:
             flash("Неверно заполнены поля", "error")
 
-    return render_template("register.html", menu=dbase.getMenu(), title="Регистрация")
+    return render_template("register.html", menu=FDataBase(conn()).getMenu(), title="Регистрация")
 
 
 @app.route("/login", methods=["POST", "GET"])
 def login():
     if request.method == "POST":
-        user = dbase.getUserByEmail(request.form['email'])
+        user = FDataBase(conn()).getUserByEmail(request.form['email'])
         if user and check_password_hash(user['psw'], request.form['psw']):
             userlogin = UserLogin().create(user)
             login_user(userlogin)
@@ -139,14 +116,13 @@ def login():
 
         flash("Неверная пара логин/пароль", "error")
 
-    return render_template("login.html", menu=dbase.getMenu(), title="Авторизация")
+    return render_template("login.html", menu=FDataBase(conn()).getMenu(), title="Авторизация")
 
 
 @app.route('/aaa')
 @login_required
 def index():
-
-    c = conn.cursor()
+    c = conn().cursor()
     c.execute("SELECT * FROM Images")
     images = c.fetchall()
     return render_template('index.html', images=images)

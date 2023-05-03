@@ -1,6 +1,7 @@
 import os
 
 
-DB_PATH = os.path.join(os.getcwd(), "db", "image_annontator.db")
+DB_PATH = os.getenv("DB_PATH", "")
+print(DB_PATH)
 
-PHOTOS_DIR = os.path.join(os.getcwd(), 'appss', 'static', 'images')
+PHOTOS_DIR = os.getenv("PHOTOS_DIR", "")

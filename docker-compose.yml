@@ -1,6 +1,5 @@
 version: "3.9"
 
-
 services:
   db_init:
     build: .
@@ -8,6 +7,9 @@ services:
       - type: bind
         source: $ANNOTATOR_DB_FOLDER_PATH
         target: /app/db
+    environment:
+      - DB_PATH=/app/db/image_annotator.db
+      - PHOTOS_DIR=/app/appss/static/images
     entrypoint: python appss/fllll.py create-database
 
   app:
@@ -20,4 +22,7 @@ services:
       - type: bind
         source: $ANNOTATOR_DB_FOLDER_PATH
         target: /app/db
-    entrypoint: python appss/fllll.py start-app
+    entrypoint: gunicorn --chdir ./appss --bind 0.0.0.0:5000 wsgi:app
+    environment:
+      - DB_PATH=/app/db/image_annotator.db
+      - PHOTOS_DIR=/app/appss/static/images
