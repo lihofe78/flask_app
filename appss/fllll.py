@@ -5,34 +5,45 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from FDataBase import FDataBase
 from flask_login import LoginManager, login_user, login_required
 from UserLogin import UserLogin
+from loguru import logger
+import typer
+import config
+
 
 DATABASE = "tmp/fldb.db"
 DEBUG = "True"
 SECRET_KEY = "lkjhgfdsapoiuytrewqer"
 
+
+conn = sqlite3.connect(config.DB_PATH, check_same_thread=False)
+
+
 app = Flask(__name__)
 # login_manager.login_view = 'login'
 app.config.from_object(__name__)
-app.config.update(dict(DATABASE=os.path.join(app.root_path, 'fldb.db')))
+# app.config.update(dict(DATABASE=os.path.join(app.root_path, 'fldb.db')))
 login_manager = LoginManager(app)
 
 
 def connect_db():
-    conn = sqlite3.connect(app.config["DATABASE"])
+    # conn = sqlite3.connect(config.DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
 
 def create_db():
-    photos_dir = os.path.join(os.getcwd(), 'static', 'images')
+    logger.info("start creating db")
+    logger.info(f"photos dir is {config.PHOTOS_DIR}")
     db = connect_db()
     with app.open_resource("sq_db.sql", mode="r") as f:
         db.cursor().executescript(f.read())
 
-    for filename in os.listdir(photos_dir):
+    for filename in os.listdir(config.PHOTOS_DIR):
+        logger.info(f"process image {filename}")
         if filename.endswith('.jpg') or filename.endswith('.png') or filename.endswith('.jpeg'):
             name = os.path.splitext(filename)[0]
-            image_file = os.path.join(photos_dir, filename).replace('\\', '/')
+            image_file = "/static/images/{}".format(filename.replace('\\', '/'))
+            logger.info(f"image_file is {filename}")
             cursor = db.cursor()
             cursor.execute('SELECT * FROM Images WHERE name = ?', (name,))
             if cursor.fetchone() is None:
@@ -42,7 +53,9 @@ def create_db():
     print('aaaaa')
 
 
-create_db()
+# create_db()
+
+    
 
 
 def get_db():
@@ -77,7 +90,6 @@ def start():
 
 @app.route('/category/<int:image_id>', methods=['GET', 'POST'])
 def category(image_id):
-    conn = sqlite3.connect('fldb.db')
     c = conn.cursor()
     c.execute("SELECT * FROM Images WHERE id=?", (image_id,))
     image = c.fetchone()
@@ -90,12 +102,9 @@ def category(image_id):
                   (image_id, category_id))
         conn.commit()
 
-        conn.close()
-
         next_image_id = image_id + 1
         return redirect(url_for('category', image_id=next_image_id))
 
-    conn.close()
     return render_template('category.html', image=image, categories=categories)
 
 
@@ -137,13 +146,25 @@ def login():
 @login_required
 def index():
 
-    conn = sqlite3.connect('fldb.db')
     c = conn.cursor()
     c.execute("SELECT * FROM Images")
     images = c.fetchall()
-    conn.close()
     return render_template('index.html', images=images)
 
 
+cmd_app = typer.Typer()
+
+
+@cmd_app.command()
+def create_database():
+    """create sqlite3 db an fill with image paths"""
+    create_db()
+
+
+@cmd_app.command()
+def start_app():
+    app.run(debug=True, port=5000, host="0.0.0.0")
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    cmd_app()

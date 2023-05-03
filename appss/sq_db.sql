@@ -15,6 +15,11 @@ CREATE TABLE IF NOT EXISTS Categories (
     name TEXT
 );
 
+
+INSERT INTO Categories (name) VALUES ("глиномесная");
+INSERT INTO Categories (name) VALUES ("пидарасная");
+
+
 CREATE TABLE IF NOT EXISTS users (
 id integer PRIMARY KEY AUTOINCREMENT,
 name text NOT NULL,
