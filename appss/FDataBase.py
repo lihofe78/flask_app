@@ -1,5 +1,8 @@
 import sqlite3, math, time, re
 from flask import url_for
+import logging
+
+logger = logging.getLogger('gunicorn.error')
 
 class FDataBase:
     def __init__(self, db):
@@ -29,6 +32,7 @@ class FDataBase:
             self.__cur.execute("INSERT INTO users VALUES(NULL, ?, ?, ?, ?)", (name, email, hpsw, tm))
             self.__db.commit()
         except sqlite3.Error as e:
+            logger.error(f"Error while add user ot db: {e}")
             print("Ошибка добавления пользователя в БД " + str(e))
             return False
 
